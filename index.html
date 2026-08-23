@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flappy Bird</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <main id="game-root">
+    <!-- Pass 1 & 2 of the WebGL shader background (procedural sky + overlay) -->
+    <canvas id="bg-canvas" aria-hidden="true"></canvas>
+    <!-- Bird and pipes, drawn with the 2D canvas API -->
+    <canvas id="game-canvas" role="img" aria-label="Flappy Bird play field"></canvas>
+    <!-- UI layers (populated by js/main.js) -->
+    <div id="hud"></div>
+    <div id="menu"></div>
+    <div id="game-over"></div>
+    <div id="hs-dock"></div>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

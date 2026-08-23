@@ -1,0 +1,12 @@
+{
+  "name": "flappy-bird",
+  "version": "1.0.0",
+  "description": "A tiny modular Flappy Bird with WebGL shader backgrounds, synthesized sound, and persistent high scores.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node tests/run-tests.js",
+    "verify": "node tests/check-server.mjs"
+  },
+  "private": true
+}
