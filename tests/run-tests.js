@@ -134,6 +134,28 @@ test('game works without a high-score service', () => {
   assert(game.lastResult === null);
 });
 
+test('day/night flips every 50 points and eases between phases', () => {
+  const { game } = makeGame({ random: () => 0.5 });
+  game.start();
+  const keepAlive = () => {
+    game.pipes.length = 0;
+    game.bird.y = 300;
+    game.bird.vy = 0;
+  };
+
+  game.scorer.score = 49;
+  keepAlive();
+  game.update(1 / 60);
+  assert(game.night < 0.5, `should still be day at 49 points, night=${game.night}`);
+
+  game.scorer.score = 50;
+  for (let i = 0; i < 150; i++) {
+    keepAlive();
+    game.update(1 / 60);
+  }
+  assert(game.night > 0.9, `should be night past 50 points, night=${game.night}`);
+});
+
 test('a deterministic bot survives and racks up points (60s sim)', () => {
   const { game } = makeGame({ random: () => 0.5 });
   // random 0.5 → constant gap center: 144 + 0.5 * (416 - 144) = 280
@@ -199,6 +221,23 @@ test('muted sound system stays silent', () => {
   sound.hit();
   assert(counts.oscillator === 0, 'muted system must not schedule oscillators');
   assert(counts.buffer === 0, 'muted system must not schedule noise');
+});
+
+test('music scheduler queues synthesized notes ahead of the playhead', () => {
+  const { ctx, counts } = makeAudioContext();
+  const sound = new SoundSystem({ context: ctx });
+  sound.startMusic();
+  sound.stopMusic();
+  assert(counts.oscillator >= 2, `expected bass+lead notes, got ${counts.oscillator}`);
+  assert(sound.musicTimer === null, 'stopMusic must clear the scheduler');
+});
+
+test('muted music scheduler stays silent', () => {
+  const { ctx, counts } = makeAudioContext();
+  const sound = new SoundSystem({ context: ctx, muted: true });
+  sound.startMusic();
+  sound.stopMusic();
+  assert(counts.oscillator === 0, 'muted music must not schedule notes');
 });
 
 // ---------- Rendering ----------

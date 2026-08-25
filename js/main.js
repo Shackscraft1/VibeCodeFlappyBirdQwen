@@ -21,7 +21,10 @@ function boot() {
   try { local = window.localStorage; } catch { local = null; }
   const storage = new Storage(local);
   const highScore = new HighScore(storage);
-  const sound = new SoundSystem({ muted: storage.getNumber('flappy.muted', 0) === 1 });
+  const sound = new SoundSystem({
+    muted: storage.getNumber('flappy.muted', 0) === 1,
+    volume: storage.getNumber('flappy.volume', 1),
+  });
   const events = new EventBus();
 
   // --- Simulation core (no DOM knowledge)
@@ -39,17 +42,32 @@ function boot() {
   }
 
   // --- UI
-  const hud = new HUD(document.getElementById('hud'));
   const hsWindow = new HighScoreWindow(document.getElementById('hs-dock'), highScore);
+
+  const hud = new HUD(document.getElementById('hud'), {
+    onTogglePause: togglePause,
+    onMenu: goToMenu,
+    onToggleMute: () => setMuted(!sound.muted),
+    onVolume: setVolume,
+    muted: sound.muted,
+    volume: sound.volume,
+  });
+
   const menu = new Menu(document.getElementById('menu'), {
     onPlay: startGame,
-    onHighScore: () => { sound.unlock(); sound.click(); hsWindow.toggle(); },
+    onHighScore: openHighScores,
     onToggleMute: () => setMuted(!sound.muted),
-  });
-  const over = new GameOverPanel(document.getElementById('game-over'), {
-    onPlayAgain: startGame,
+    onVolume: setVolume,
+    volume: sound.volume,
   });
   menu.setMutedLabel(sound.muted);
+
+  const over = new GameOverPanel(document.getElementById('game-over'), {
+    onPlayAgain: startGame,
+    onHighScore: openHighScores,
+    onMenu: goToMenu,
+    onSave: handleSave,
+  });
 
   // --- Wire simulation events → sound / UI
   events.on('flap', () => sound.flap());
@@ -60,15 +78,27 @@ function boot() {
   events.on('hit', ({ score, result }) => {
     sound.hit();
     sound.die();
-    if (result) {
-      hsWindow.lastScore = result.score;
-      if (result.isRecord) hsWindow.open();
-    }
+    hsWindow.lastScore = score;
+    over.show({
+      score: result ? result.score : score,
+      best: result ? result.best : highScore.best,
+      isRecord: result ? result.isRecord : false,
+      name: highScore.lastName ?? '',
+    });
+    if (result && result.isRecord) hsWindow.open();
   });
   events.on('state', ({ state }) => {
-    hud.setVisible(state === GameState.PLAYING);
+    const inRun = state === GameState.PLAYING || state === GameState.PAUSED;
+    hud.setVisible(inRun);
+    hud.showPauseState(state === GameState.PAUSED);
     menu.setVisible(state === GameState.MENU);
     over.setVisible(state === GameState.GAME_OVER);
+
+    if (state === GameState.PAUSED) {
+      sound.suspend(); // freezes music and clock; unlock() on resume thaws
+    } else if (state === GameState.MENU || state === GameState.GAME_OVER) {
+      sound.stopMusic();
+    }
   });
 
   // --- Actions
@@ -76,33 +106,92 @@ function boot() {
     sound.unlock();
     sound.click();
     hud.setScore(0);
+    hud.showPauseState(false);
+    hsWindow.close();
+    sound.startMusic();
     game.start();
   }
 
-  function act() {
+  function togglePause() {
     sound.unlock();
-    if (game.state === GameState.MENU) {
-      startGame();
-    } else if (game.state === GameState.PLAYING) {
-      game.flap();
-    } else if (game.canRestart()) {
-      startGame();
+    if (game.state === GameState.PLAYING) {
+      sound.click();
+      game.pause();
+    } else if (game.state === GameState.PAUSED) {
+      sound.click();
+      game.resume();
     }
+  }
+
+  function goToMenu() {
+    sound.click();
+    hsWindow.close();
+    game.toMenu();
+  }
+
+  function openHighScores() {
+    sound.unlock();
+    sound.click();
+    hsWindow.toggle();
   }
 
   function setMuted(muted) {
     sound.setMuted(muted);
     storage.setNumber('flappy.muted', muted ? 1 : 0);
     menu.setMutedLabel(muted);
+    hud.setMutedLabel(muted);
+  }
+
+  function setVolume(v01) {
+    sound.setVolume(v01);
+    storage.setNumber('flappy.volume', v01);
+    menu.setVolume(v01);
+    hud.setVolume(v01);
+  }
+
+  /** Save the finished run to the leaderboard under a sanitized name. */
+  function handleSave(name) {
+    const score = game.lastResult ? game.lastResult.score : 0;
+    const saved = highScore.save({ score, name });
+    sound.click();
+    over.markSaved();
+    over.nameInput.value = saved.name; // show the sanitized form back
+    if (hsWindow.isOpen()) hsWindow.open(); // refresh if it is open
   }
 
   // --- Input: click / tap / keyboard
+  function act() {
+    sound.unlock();
+    if (game.state === GameState.MENU) {
+      startGame();
+    } else if (game.state === GameState.PLAYING) {
+      game.flap();
+    } else if (game.state === GameState.PAUSED) {
+      game.resume();
+    } else if (game.canRestart()) {
+      startGame();
+    }
+  }
+
   window.addEventListener('keydown', (e) => {
+    const target = e.target;
+    const typing = target instanceof HTMLInputElement;
+
+    if (e.code === 'Enter' && target === over.nameInput) {
+      e.preventDefault();
+      handleSave(over.nameInput.value);
+      return;
+    }
+    if (typing) return; // let text fields / sliders behave natively
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
       e.preventDefault();
       if (!e.repeat) act();
+    } else if (e.code === 'KeyP' || e.code === 'Escape') {
+      e.preventDefault();
+      togglePause();
     }
   });
+
   const root = document.getElementById('game-root');
   root.addEventListener('pointerdown', (e) => {
     if (e.button === undefined || e.button === 0) act();
@@ -120,12 +209,14 @@ function boot() {
       pipes: game.pipes,
       state: game.state,
       time: game.time,
+      night: game.night,
     });
     if (shaders.active) {
       shaders.render({
         time: game.time,
         scroll: game.scrollX % GAME.WORLD_PERIOD,
         flash: game.flash,
+        night: game.night,
       });
     }
     requestAnimationFrame(frame);

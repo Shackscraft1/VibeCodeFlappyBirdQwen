@@ -33,10 +33,13 @@ createServer(async (req, res) => {
     }
 
     const data = await readFile(file);
-    res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' });
+    res.writeHead(200, {
+      'content-type': MIME[extname(file)] ?? 'application/octet-stream',
+      'cache-control': 'no-store', // dev server: never serve stale JS after edits
+    });
     res.end(data);
   } catch {
-    res.writeHead(404, { 'content-type': 'text/plain' });
+    res.writeHead(404, { 'content-type': 'text/plain', 'cache-control': 'no-store' });
     res.end('Not found');
   }
 }).listen(port, () => {

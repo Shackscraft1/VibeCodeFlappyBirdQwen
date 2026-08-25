@@ -24,11 +24,17 @@ export class Renderer2D {
     return this.config.HEIGHT - this.config.GROUND_HEIGHT;
   }
 
-  draw({ bird, pipes, state, time }) {
+  draw({ bird, pipes, state, time, night = 0 }) {
     const { WIDTH, HEIGHT } = this.config;
     this.ctx.clearRect(0, 0, WIDTH, HEIGHT);
     for (const pipe of pipes) this.drawPipe(pipe);
     this.drawBird(bird, state, time);
+
+    // Night tint over the sprites (the shader handles the sky itself).
+    if (night > 0.01) {
+      this.ctx.fillStyle = 'rgba(13, 22, 58, ' + (0.22 * night).toFixed(3) + ')';
+      this.ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    }
   }
 
   pipeBody(x, y, w, h) {

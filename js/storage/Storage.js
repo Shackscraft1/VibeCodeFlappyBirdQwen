@@ -28,4 +28,29 @@ export class Storage {
       return false;
     }
   }
+
+  /**
+   * Read a JSON value; returns `fallback` (or a fresh array/object) if the
+   * stored data is missing or malformed, so callers never crash on a
+   * corrupted profile.
+   */
+  getJson(key, fallback) {
+    if (!this.backend) return fallback;
+    try {
+      const raw = this.backend.getItem(key);
+      return raw == null ? fallback : JSON.parse(raw);
+    } catch {
+      return fallback;
+    }
+  }
+
+  setJson(key, value) {
+    if (!this.backend) return false;
+    try {
+      this.backend.setItem(key, JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }

@@ -78,7 +78,7 @@ export class ShaderLayer {
     gl.vertexAttribPointer(program.attrib, 2, gl.FLOAT, false, 0, 0);
   }
 
-  render({ time, scroll, flash }) {
+  render({ time, scroll, flash, night = 0 }) {
     const gl = this.gl;
     if (!gl) return;
 
@@ -92,6 +92,7 @@ export class ShaderLayer {
     gl.uniform2f(this.uniform(this.sky, gl, 'u_resolution'), this.canvas.width, this.canvas.height);
     gl.uniform1f(this.uniform(this.sky, gl, 'u_time'), time);
     gl.uniform1f(this.uniform(this.sky, gl, 'u_scroll'), scroll);
+    gl.uniform1f(this.uniform(this.sky, gl, 'u_night'), night);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     // Pass 2 — vignette / grain / flash
