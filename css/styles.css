@@ -70,6 +70,70 @@ body {
     0 4px 0 #22303f;
 }
 
+/* ============ Pause button & pause panel ============ */
+
+.hud-pause {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 4;
+  pointer-events: auto;
+  width: 42px;
+  height: 42px;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(16, 24, 40, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.hud-pause:hover { background: rgba(16, 24, 40, 0.75); }
+
+.pause-panel { position: absolute; inset: 0; display: grid; place-items: center; }
+#hud .panel { pointer-events: auto; }
+
+/* ============ Volume + name rows ============ */
+
+.volume-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.volume-label { color: #9fb4d8; font-size: 13px; }
+
+.vol {
+  flex: 1;
+  accent-color: #ffd93b;
+  cursor: pointer;
+}
+
+.name-row {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+.name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: #24304a;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+}
+
+.name-input:focus { outline: 2px solid #ffd93b; }
+.name-input:disabled { opacity: 0.6; }
+
+.btn:disabled { opacity: 0.6; cursor: default; }
+
 /* ============ Panels (menu / game over) ============ */
 
 #menu, #game-over {
@@ -251,6 +315,18 @@ body {
   gap: 6px;
 }
 
-.hs-row { display: flex; justify-content: space-between; }
+.hs-row { display: flex; justify-content: space-between; gap: 6px; }
 .hs-row span { color: #9fb4d8; }
 .hs-row b { font-family: "Courier New", monospace; color: #ffd93b; }
+
+.hs-leaderboard-container {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.leaderboard-entry span.rank { color: #7f93b8; flex: none; }
+.leaderboard-entry span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.no-entries { margin: 0; color: #7f93b8; font-size: 13px; }

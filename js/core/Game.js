@@ -37,6 +37,7 @@ export class Game {
     this.spawner = new Spawner(config, random);
     this.scorer = new Scoring();
     this.flash = { amount: 0, color: [1, 1, 1] };
+    this.night = 0; // 0 = full day, 1 = full night (eased)
     this.lastResult = null;
     this.deathTime = 0;
   }
@@ -51,6 +52,7 @@ export class Game {
     this.scorer.reset();
     this.spawner.reset(0);
     this.lastResult = null;
+    this.night = 0;
     this.setState(GameState.PLAYING);
   }
 
@@ -80,6 +82,7 @@ export class Game {
     this.scorer.reset();
     this.spawner.reset(0);
     this.lastResult = null;
+    this.night = 0;
     this.setState(GameState.MENU);
   }
 
@@ -115,6 +118,14 @@ export class Game {
 
     // --- Playing
     this.scrollX += this.config.PIPES.SPEED * dt;
+
+    // Day/night: every 50 points the world flips phase (50-99 night,
+    // 100-149 day, ...). Ease toward the target so transitions are smooth.
+    const band = Math.floor(this.scorer.score / 50);
+    const nightTarget = (band % 2 === 1) ? 1 : 0;
+    this.night += (nightTarget - this.night) * Math.min(1, dt * 1.5);
+    if (Math.abs(this.night - nightTarget) < 0.004) this.night = nightTarget;
+
     this.spawner.update(dt, this.pipes);
     for (const pipe of this.pipes) pipe.update(dt);
     this.pipes = this.pipes.filter((pipe) => !pipe.isOffscreen());

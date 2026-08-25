@@ -6,9 +6,6 @@ export class HighScoreWindow {
   constructor(container, highScore) {
     this.hs = highScore;
     this.lastScore = 0;
-    this.leaderboardEl = document.createElement('div');
-    this.leaderboardEl.className = 'hs-leaderboard';
-    container.appendChild(this.leaderboardEl);
     this.win = document.createElement('section');
     this.win.className = 'hs-window hidden';
     this.win.innerHTML = `
@@ -39,25 +36,36 @@ export class HighScoreWindow {
     this.win.querySelector('[data-field="last"]').textContent = String(this.lastScore);
     this.win.querySelector('[data-field="plays"]').textContent = String(this.hs.plays);
 
-    // 2. Update leaderboard
+    // 2. Update leaderboard. Names are inserted with textContent only, so a
+    //    stored string can never be interpreted as markup.
     const leaderboardContainer = this.win.querySelector('.hs-leaderboard-container');
-    leaderboardContainer.innerHTML = ''; // Clear previous entries
+    leaderboardContainer.replaceChildren();
     const topRuns = this.hs.top();
 
     if (topRuns.length === 0) {
-      leaderboardContainer.innerHTML = '<p class="no-entries">No scores recorded yet.</p>';
+      const empty = document.createElement('p');
+      empty.className = 'no-entries';
+      empty.textContent = 'No scores recorded yet.';
+      leaderboardContainer.appendChild(empty);
     } else {
       topRuns.forEach((run, index) => {
         const entry = document.createElement('div');
         entry.className = 'hs-row leaderboard-entry';
-        entry.innerHTML = `
-          <span class="rank">${index + 1}.</span>
-          <span>${run.n}</span>
-          <b data-field="score">${run.s}</b>
-        `;
+        const rank = document.createElement('span');
+        rank.className = 'rank';
+        rank.textContent = `${index + 1}.`;
+        const name = document.createElement('span');
+        name.textContent = run.n;
+        const score = document.createElement('b');
+        score.textContent = String(run.s);
+        entry.append(rank, name, score);
         leaderboardContainer.appendChild(entry);
       });
     }
+  }
+
+  isOpen() {
+    return !this.win.classList.contains('hidden');
   }
 
   open() {
