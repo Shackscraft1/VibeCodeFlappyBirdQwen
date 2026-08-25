@@ -8,6 +8,7 @@ import { birdHitsPipe } from '../systems/Collisions.js';
 export const GameState = Object.freeze({
   MENU: 'menu',
   PLAYING: 'playing',
+  PAUSED: 'paused',
   GAME_OVER: 'gameover',
 });
 
@@ -60,12 +61,37 @@ export class Game {
     this.events.emit('flap');
   }
 
+  /** Freeze the simulation (only from PLAYING). */
+  pause() {
+    if (this.state !== GameState.PLAYING) return;
+    this.setState(GameState.PAUSED);
+  }
+
+  /** Continue from PAUSED. */
+  resume() {
+    if (this.state !== GameState.PAUSED) return;
+    this.setState(GameState.PLAYING);
+  }
+
+  /** Abandon the run and return to the main menu. */
+  toMenu() {
+    this.bird = new Bird(this.config);
+    this.pipes = [];
+    this.scorer.reset();
+    this.spawner.reset(0);
+    this.lastResult = null;
+    this.setState(GameState.MENU);
+  }
+
   /** Guard so the tap that killed the player does not instantly restart. */
   canRestart() {
     return this.state === GameState.GAME_OVER && this.time - this.deathTime > 0.7;
   }
 
   update(dt) {
+    // Fully frozen while paused: no time, no physics, no flash decay.
+    if (this.state === GameState.PAUSED) return;
+
     this.time += dt;
     this.flash.amount *= Math.exp(-4 * dt);
     if (this.flash.amount < 0.002) this.flash.amount = 0;
@@ -101,7 +127,8 @@ export class Game {
       if (!pipe.passed && pipe.x + pipe.width < this.bird.x) {
         pipe.passed = true;
         this.scorer.add();
-        this.flash = { amount: 0.16, color: [1, 1, 0.85] };
+        // Deliberately subtle — a bright full-screen pop per point is distracting.
+        this.flash = { amount: 0.05, color: [1, 1, 0.85] };
         this.events.emit('score', { score: this.scorer.score });
       }
     }
@@ -121,7 +148,7 @@ export class Game {
     this.deathTime = this.time;
     this.bird.dead = true;
     this.bird.y = Math.min(this.bird.y, this.groundTop - this.bird.radius);
-    this.flash = { amount: 0.5, color: [1, 0.35, 0.25] };
+    this.flash = { amount: 0.35, color: [1, 0.35, 0.25] };
     const result = this.highScore ? this.highScore.submit(this.scorer.score) : null;
     this.lastResult = result;
     if (this.highScore) this.highScore.recordPlay();

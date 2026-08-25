@@ -1,13 +1,23 @@
 /**
  * All sound effects are synthesized with the Web Audio API — no assets.
  * The audio context is created lazily on the first user gesture, as
- * required by browser autoplay policies.
+ * as required by browser autoplay policies.
  */
+
+function clamp01(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1;
+}
+
 export class SoundSystem {
-  constructor({ context = null, muted = false } = {}) {
+  /** Overall level (0..1) applied on top of the per-effect gains. */
+  static BASE_LEVEL = 0.9;
+
+  constructor({ context = null, muted = false, volume = 1 } = {}) {
     this.ctx = context ?? null;
     this.master = null;
     this.muted = muted;
+    this.volume = clamp01(volume);
   }
 
   /** Must be called from a user gesture before audio can play. */
@@ -26,11 +36,17 @@ export class SoundSystem {
     this.muted = muted;
   }
 
+  /** Set master volume (0..1); applies immediately if the graph exists. */
+  setVolume(volume) {
+    this.volume = clamp01(volume);
+    if (this.master) this.master.gain.value = SoundSystem.BASE_LEVEL * this.volume;
+  }
+
   ensureMaster() {
     if (!this.ctx || this.muted) return null;
     if (!this.master) {
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.9;
+      this.master.gain.value = SoundSystem.BASE_LEVEL * this.volume;
       this.master.connect(this.ctx.destination);
     }
     return this.master;
