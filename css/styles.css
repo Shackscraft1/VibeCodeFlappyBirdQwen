@@ -144,6 +144,14 @@ body {
   justify-content: center;
 }
 
+/* These containers are always present (only their inner panels toggle),
+   so they must never swallow clicks meant for the layer beneath them.
+   Only a visible panel participates in hit-testing. */
+#game-over { pointer-events: none; }
+#game-over .panel { pointer-events: auto; }
+#hs-dock { pointer-events: none; }
+#hs-dock .hs-window { pointer-events: auto; }
+
 .panel {
   width: min(320px, 86%);
   padding: 28px 26px;
