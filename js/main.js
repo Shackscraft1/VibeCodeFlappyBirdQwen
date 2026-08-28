@@ -194,7 +194,18 @@ function boot() {
 
   const root = document.getElementById('game-root');
   root.addEventListener('pointerdown', (e) => {
-    if (e.button === undefined || e.button === 0) act();
+    if (e.button !== undefined && e.button !== 0) return;
+    // On the start menu, plain clicks do NOTHING: only the Play button
+    // (handled inside Menu.js) or the Space key starts a run. This is
+    // checked before any target detection, so it holds no matter what the
+    // tap landed on — panel, button, slider, or empty space.
+    if (game.state === GameState.MENU) return;
+    // A tap on UI never flaps or restarts: game-over panel, the scores
+    // window, buttons and inputs are all off-limits. Anything else counts
+    // as a game tap (flap in flight, resume from pause).
+    const t = e.target;
+    if (t instanceof Element && t.closest('button, input, .panel, #hs-dock')) return;
+    act();
   });
 
   // --- Main loop
