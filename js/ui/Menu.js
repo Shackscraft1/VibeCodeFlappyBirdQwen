@@ -22,7 +22,7 @@ export class Menu {
         <span class="volume-label">Volume</span>
         <input class="vol" type="range" min="0" max="100" step="1" value="${Math.round(volume * 100)}" aria-label="Volume" />
       </div>
-      <p class="hint">Play — or click outside the panel — to start · Space / ↑ / click to flap · P pauses</p>
+      <p class="hint">Click Play (or press Space) to start · Space / ↑ / click to flap · P pauses</p>
     `;
     container.appendChild(panel);
     this.container = container;
